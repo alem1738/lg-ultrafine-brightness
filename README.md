@@ -1,75 +1,46 @@
-# LG Ultrafine Brightness Control
+# Monitor Brightness
 
-A sleek Windows application for controlling LG Ultrafine 4K/5K monitor brightness with a beautiful modern UI and intelligent auto-brightness.
+A frosted-glass tray widget for controlling the brightness of your external monitors on Windows.
 
-## ✨ Features
+Forked from [mengzhisy/lg-ultrafine-brightness](https://github.com/mengzhisy/lg-ultrafine-brightness), which only supported the LG UltraFine 4K/5K over USB. This fork works with any monitor that supports **DDC/CI** (most do) and keeps the original LG UltraFine support.
 
-- 🌟 **Auto-Brightness** - Automatically adjusts screen brightness based on ambient light sensor (ALS) built into your LG Ultrafine display
-- 🎨 **Beautiful Modern UI** - Dark-themed interface built with ImGui and DirectX 11
-- 🖥️ **Native Brightness Control** - Direct HID communication with LG Ultrafine monitors
-- ⌨️ **Global Hotkeys** - Adjust brightness from anywhere using Ctrl+Alt+Up/Down
-- 🎯 **System Tray Integration** - Minimal footprint with quick access from tray icon
+<p align="center">
+  <img src="docs/brightness.png" width="45%" alt="Brightness tab with schedule graph">
+  &nbsp;
+  <img src="docs/profiles.png" width="45%" alt="Profiles tab">
+</p>
 
-## 📸 Screenshots
+## Features
 
-<img src="img.png" width="50%" alt="LG Ultrafine Brightness Control Interface">
+- **Every monitor, its own slider**, detected automatically by name
+- **Brightness schedule**: drag points on a 24-hour graph, in any time zone
+- **Profiles**: save per-monitor brightness setups and switch with one click, a hotkey or the tray menu
+- **Custom hotkeys** for brightness up/down, profiles, the schedule and showing the widget
+- **Frosted glass widget** that pops up above the tray on Windows 11, resizable with scrolling
+- **Handles hot-plug and sleep**, and picks up changes made with monitor buttons or other apps
+- **Start with Windows**, straight to the tray
 
-## 🔧 Supported Monitors
+## Usage
 
-- LG Ultrafine 5K Display (27MD5KL-B, 27MD5KA-B)
-- LG Ultrafine 4K Display (24MD4KL-B, 22MD4KA-B)
+Click the tray icon to open the widget, then click anywhere else to close it. Right-click the tray icon for presets, profiles and settings. Drag the bar at the top of the widget to resize it, and double-click the bar to reset.
 
-## 🎮 Usage
+Default hotkeys: `Ctrl+Alt+Up/Down` for brightness and `Ctrl+Alt+1–4` for profiles, all changeable on the **Hotkeys** tab.
 
-### Auto-Brightness
+## Requirements
 
-If your LG Ultrafine monitor has a built-in ambient light sensor (ALS), the app will automatically detect it and enable auto-brightness features:
+- Windows 10/11 (64-bit); the frosted glass needs Windows 11 22H2+
+- A monitor with DDC/CI enabled in its on-screen menu, or an LG UltraFine 4K/5K
+- Not supported: laptop built-in screens, and most DisplayLink adapters, docks and KVMs
 
-1. **View Real-time Ambient Light** - The UI displays the current ambient light level in lux
-2. **Enable Auto-Brightness** - Check the "Auto Brightness" checkbox to let the app automatically adjust brightness based on room lighting
-3. **Smart Algorithm** - The app intelligently maps ambient light levels to optimal brightness:
-   - 0-50 lux (very dark) → 10-20% brightness
-   - 50-200 lux (dim indoor) → 20-40% brightness
-   - 200-500 lux (normal indoor) → 40-70% brightness
-   - 500-1000 lux (bright indoor) → 70-90% brightness
-   - 1000+ lux (very bright/outdoor) → 90-100% brightness
+## Building
 
-> **Note**: If no ALS is detected, the UI will show "Not Supported" and you can still manually control brightness.
-
-### Manual Brightness Control
-
-- **Slider**: Drag the slider in the main window
-- **Hotkeys**:
-  - `Ctrl + Alt + Up` - Increase brightness by 5%
-  - `Ctrl + Alt + Down` - Decrease brightness by 5%
-
-> **Tip**: When auto-brightness is enabled, the manual slider is disabled. Uncheck "Auto Brightness" to regain manual __control.
-
-## 🛠️ Building from Source
-
-### Prerequisites
-
-- Windows 10/11
-- Visual Studio 2019 or later (with C++ desktop development)
-- CMake 3.20+
-- Git
-
-### Build Steps
+Needs Visual Studio 2022 Build Tools (C++ workload, which includes CMake and Ninja).
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/lg-ultrafine-brightness.git
+git clone --recursive https://github.com/<your-username>/lg-ultrafine-brightness.git
 cd lg-ultrafine-brightness
-
-# Initialize submodules
-git submodule update --init --recursive
-
-# Configure (from Visual Studio Developer Command Prompt)
-mkdir build
-cd build
-
-cmake ..
-
-cmake --build . --config Release
-
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release   # from a VS Developer Command Prompt
+cmake --build build
 ```
+
+The app is `build/LGUltrafineBrightness.exe`.

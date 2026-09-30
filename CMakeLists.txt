@@ -39,20 +39,34 @@ target_link_libraries(imgui PUBLIC d3d11 dxgi)
 set(SOURCES
     src/main.cpp
     src/brightness.cpp
+    src/ddc_display.cpp
+    src/auto_brightness.cpp
+    src/schedule.cpp
+    src/schedule_ui.cpp
+    src/profiles.cpp
     src/als_sensor.cpp
     src/ui.cpp
     src/tray.cpp
     src/hotkey.cpp
     src/app.cpp
+    src/settings.cpp
 )
 
 set(HEADERS
+    src/display.h
     src/brightness.h
+    src/ddc_display.h
+    src/auto_brightness.h
+    src/schedule.h
+    src/schedule_ui.h
+    src/profiles.h
     src/als_sensor.h
     src/ui.h
     src/tray.h
     src/hotkey.h
     src/app.h
+    src/settings.h
+    src/resource.h
 )
 
 # Create executable (WIN32 for no console window)
@@ -73,6 +87,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     dwmapi
     sensorsapi
     oleaut32
+    advapi32
+    dxva2
 )
 
 # Set subsystem to Windows and disable auto-manifest (we provide one in resource.rc)

@@ -1,4 +1,5 @@
 #include <Windows.h>
+#include <cstring>
 #include "app.h"
 
 // Custom message for showing window from another instance
@@ -22,10 +23,13 @@ int WINAPI WinMain(
         return 0;
     }
 
+    // Launched from the "Start with Windows" entry: go straight to the tray
+    bool startHidden = lpCmdLine && strstr(lpCmdLine, "--minimized") != nullptr;
+
     // Create and run application
     app::Application application;
 
-    if (!application.initialize(hInstance)) {
+    if (!application.initialize(hInstance, startHidden)) {
         MessageBoxW(nullptr, L"Failed to initialize application", L"Error", MB_OK | MB_ICONERROR);
         return 1;
     }
