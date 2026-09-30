@@ -378,10 +378,26 @@ void UIRenderer::renderMainUI() {
 
     // Brightness control section
     if (connected) {
-        // One block per display: name + percentage on one line, slider below
+        // One block per display: name + percentage on one line, slider below.
+        // Dragging the name row moves the block; it swaps with a neighbor once the mouse leaves it.
+        const bool canReorder = m_displays.size() > 1;
+        std::vector<float> blockTops, blockBottoms;
         for (size_t i = 0; i < m_displays.size(); ++i) {
             DisplayEntry& entry = m_displays[i];
             ImGui::PushID(static_cast<int>(i));
+            blockTops.push_back(ImGui::GetCursorScreenPos().y);
+
+            if (canReorder) {
+                ImVec2 rowPos = ImGui::GetCursorPos();
+                ImGui::InvisibleButton("##move", ImVec2(contentWidth, ImGui::GetTextLineHeight()));
+                if (ImGui::IsItemActivated()) {
+                    m_dragDisplay = static_cast<int>(i);
+                }
+                if (ImGui::IsItemHovered() && m_dragDisplay < 0) {
+                    ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+                }
+                ImGui::SetCursorPos(rowPos);
+            }
 
             ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "%s", entry.name.c_str());
             {
@@ -411,6 +427,38 @@ void UIRenderer::renderMainUI() {
 
             ImGui::PopID();
             ImGui::Spacing();
+            blockBottoms.push_back(ImGui::GetCursorScreenPos().y);
+        }
+
+        if (m_dragDisplay >= 0) {
+            int d = m_dragDisplay;
+            if (!ImGui::IsMouseDown(ImGuiMouseButton_Left) || d >= static_cast<int>(m_displays.size())) {
+                m_dragDisplay = -1;
+            } else {
+                ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+
+                // Highlight the block being moved
+                float left = ImGui::GetWindowPos().x + 10.0f * s;
+                float right = ImGui::GetWindowPos().x + ImGui::GetWindowWidth() - 10.0f * s;
+                ImGui::GetWindowDrawList()->AddRectFilled(
+                    ImVec2(left, blockTops[d] - 4.0f * s), ImVec2(right, blockBottoms[d]),
+                    ImGui::ColorConvertFloat4ToU32(ImVec4(1.0f, 1.0f, 1.0f, 0.07f)), 6.0f * s);
+
+                float mouseY = ImGui::GetIO().MousePos.y;
+                int target = -1;
+                if (d > 0 && mouseY < blockTops[d]) {
+                    target = d - 1;
+                } else if (d + 1 < static_cast<int>(m_displays.size()) && mouseY > blockBottoms[d]) {
+                    target = d + 1;
+                }
+                if (target >= 0) {
+                    std::swap(m_displays[d], m_displays[target]);
+                    m_dragDisplay = target;
+                    if (m_displayMovedCallback) {
+                        m_displayMovedCallback(d, target);
+                    }
+                }
+            }
         }
 
         ImGui::Spacing();
@@ -707,20 +755,6 @@ void UIRenderer::renderHotkeysTab(float contentWidth) {
     const ImVec4 gray(0.55f, 0.55f, 0.55f, 1.0f);
     const float spacing = ImGui::GetStyle().ItemSpacing.x;
 
-    ImGui::Spacing();
-
-    // Step size for the up/down hotkeys
-    ImGui::AlignTextToFramePadding();
-    ImGui::Text("Brightness step");
-    ImGui::SameLine(right - 170.0f * s);
-    ImGui::SetNextItemWidth(170.0f * s);
-    ImGui::SliderInt("##step", &m_stepPercent, 1, 25, "%d%%");
-    if (ImGui::IsItemDeactivatedAfterEdit() && m_hotkeyActions.setStep) {
-        m_hotkeyActions.setStep(m_stepPercent);
-    }
-
-    ImGui::Spacing();
-    ImGui::Separator();
     ImGui::Spacing();
 
     if (m_captureIndex >= 0) {

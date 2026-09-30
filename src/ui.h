@@ -38,6 +38,12 @@ public:
         m_brightnessCallback = callback;
     }
 
+    // Slider dragged to a new position (from index, to index)
+    using DisplayMovedCallback = std::function<void(int, int)>;
+    void setDisplayMovedCallback(DisplayMovedCallback callback) {
+        m_displayMovedCallback = callback;
+    }
+
     // Set close callback
     using CloseCallback = std::function<void()>;
     void setCloseCallback(CloseCallback callback) {
@@ -94,18 +100,16 @@ public:
     };
     // captureIndex: entry waiting for a key press (-1 = none)
     void setHotkeys(const std::vector<HotkeyEntry>& hotkeys, int captureIndex,
-                    const std::string& captureMessage, int stepPercent) {
+                    const std::string& captureMessage) {
         m_hotkeys = hotkeys;
         m_captureIndex = captureIndex;
         m_captureMessage = captureMessage;
-        m_stepPercent = stepPercent;
     }
 
     struct HotkeyActions {
         std::function<void(int)> capture;  // Start listening for a combination
         std::function<void()> cancelCapture;
         std::function<void(int)> clear;
-        std::function<void(int)> setStep;
     };
     void setHotkeyActions(const HotkeyActions& actions) { m_hotkeyActions = actions; }
 
@@ -156,6 +160,7 @@ private:
 
     HWND m_hwnd = nullptr;
     std::vector<DisplayEntry> m_displays;
+    int m_dragDisplay = -1;  // Slider being dragged by its name row (-1 = none)
     float m_dpiScale = 1.0f;
     bool m_glass = false;
     float m_alpha = 1.0f;
@@ -195,9 +200,9 @@ private:
     HotkeyActions m_hotkeyActions;
     int m_captureIndex = -1;
     std::string m_captureMessage;
-    int m_stepPercent = 5;
 
     BrightnessChangedCallback m_brightnessCallback;
+    DisplayMovedCallback m_displayMovedCallback;
     CloseCallback m_closeCallback;
     AutoBrightnessCallback m_autoBrightnessCallback;
 };

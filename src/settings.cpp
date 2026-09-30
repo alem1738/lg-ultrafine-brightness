@@ -64,9 +64,17 @@ Settings load() {
         s.brightnessDown = hotkey::Binding::unpack(readDword(key, L"HotkeyBrightnessDown", s.brightnessDown.pack()));
         s.toggleSchedule = hotkey::Binding::unpack(readDword(key, L"HotkeyToggleSchedule", 0));
         s.showWindow = hotkey::Binding::unpack(readDword(key, L"HotkeyShowWindow", 0));
-        s.stepPercent = static_cast<int>(readDword(key, L"StepPercent", 5));
-        if (s.stepPercent < 1 || s.stepPercent > 25) s.stepPercent = 5;
         s.widgetHeight = static_cast<int>(readDword(key, L"WidgetHeight", 0));
+
+        // One monitor name per line
+        std::wstring order = readString(key, L"DisplayOrder");
+        size_t start = 0;
+        while (start < order.size()) {
+            size_t end = order.find(L'\n', start);
+            if (end == std::wstring::npos) end = order.size();
+            if (end > start) s.displayOrder.push_back(order.substr(start, end - start));
+            start = end + 1;
+        }
 
         RegCloseKey(key);
     } else {
@@ -88,8 +96,13 @@ void save(const Settings& s) {
         writeDword(key, L"HotkeyBrightnessDown", s.brightnessDown.pack());
         writeDword(key, L"HotkeyToggleSchedule", s.toggleSchedule.pack());
         writeDword(key, L"HotkeyShowWindow", s.showWindow.pack());
-        writeDword(key, L"StepPercent", static_cast<DWORD>(s.stepPercent));
         writeDword(key, L"WidgetHeight", static_cast<DWORD>(s.widgetHeight));
+        std::wstring order;
+        for (const std::wstring& name : s.displayOrder) {
+            if (!order.empty()) order += L'\n';
+            order += name;
+        }
+        writeString(key, L"DisplayOrder", order);
         RegCloseKey(key);
     }
 }

@@ -2,6 +2,7 @@
 
 #include <Windows.h>
 
+#include <string>
 #include <vector>
 
 #include "hotkey.h"
@@ -22,7 +23,9 @@ struct Settings {
     hotkey::Binding brightnessDown = { MOD_CONTROL | MOD_ALT, VK_DOWN };
     hotkey::Binding toggleSchedule;
     hotkey::Binding showWindow;
-    int stepPercent = 5;  // Brightness change per up/down hotkey press
+
+    // Slider order on the Brightness tab, by monitor name; unlisted monitors go last
+    std::vector<std::wstring> displayOrder;
 
     int widgetHeight = 0;  // User-chosen widget height at 96 DPI, 0 = fit to content
 };

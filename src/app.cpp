@@ -23,6 +23,7 @@ static constexpr DWORD WINDOW_STYLE = WS_POPUP;
 static constexpr DWORD WINDOW_EX_STYLE = WS_EX_TOOLWINDOW | WS_EX_TOPMOST;
 static constexpr int WINDOW_WIDTH = 420;   // At 96 DPI
 static constexpr int SCREEN_MARGIN = 12;   // Gap to the screen edge / taskbar, at 96 DPI
+static constexpr int HOTKEY_STEP_PERCENT = 5;  // Brightness change per up/down hotkey press
 
 static std::wstring fromUtf8(const std::string& s) {
     int size = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), static_cast<int>(s.size()), nullptr, 0);
@@ -102,6 +103,16 @@ std::vector<display::Display*> Application::displays() {
     for (auto& d : m_ddcDisplays) {
         result.push_back(d.get());
     }
+
+    // User-chosen order (Brightness tab drag); unknown monitors keep enumeration order at the end
+    const auto& order = m_settings.displayOrder;
+    if (!order.empty()) {
+        auto rank = [&order](display::Display* d) {
+            return std::find(order.begin(), order.end(), d->name()) - order.begin();
+        };
+        std::stable_sort(result.begin(), result.end(),
+                         [&rank](display::Display* a, display::Display* b) { return rank(a) < rank(b); });
+    }
     return result;
 }
 
@@ -177,7 +188,7 @@ void Application::syncUI() {
         e.conflict = i < static_cast<int>(m_hotkeyConflicts.size()) && m_hotkeyConflicts[i];
         hotkeyEntries.push_back(std::move(e));
     }
-    m_ui->setHotkeys(hotkeyEntries, m_captureEntry, m_captureMessage, m_settings.stepPercent);
+    m_ui->setHotkeys(hotkeyEntries, m_captureEntry, m_captureMessage);
 }
 
 // ---------------------------------------------------------------------------
@@ -220,8 +231,8 @@ void Application::applyHotkeys() {
 void Application::onHotkey(int id) {
     int entry = id - 1;
     switch (entry) {
-    case 0: adjustAllBrightness(m_settings.stepPercent); break;
-    case 1: adjustAllBrightness(-m_settings.stepPercent); break;
+    case 0: adjustAllBrightness(HOTKEY_STEP_PERCENT); break;
+    case 1: adjustAllBrightness(-HOTKEY_STEP_PERCENT); break;
     case 2: setScheduleEnabled(!m_settings.schedule.enabled); break;
     case 3: showWindow(); break;
     default: applyProfile(entry - FIXED_HOTKEY_ENTRIES); break;
@@ -468,6 +479,38 @@ void Application::positionWindow() {
 }
 
 void Application::setupCallbacks() {
+    // Slider dragged to a new position: save the order by monitor name
+    m_ui->setDisplayMovedCallback([this](int from, int to) {
+        auto list = displays();
+        int count = static_cast<int>(list.size());
+        if (from < 0 || from >= count || to < 0 || to >= count) {
+            return;
+        }
+        std::vector<std::wstring> order;
+        for (display::Display* d : list) {
+            order.push_back(d->name());
+        }
+        std::wstring moved = order[from];
+        order.erase(order.begin() + from);
+        order.insert(order.begin() + to, moved);
+
+        // Keep the saved positions of monitors that aren't connected right now
+        for (const std::wstring& name : m_settings.displayOrder) {
+            if (std::find(order.begin(), order.end(), name) == order.end()) {
+                order.push_back(name);
+            }
+        }
+        m_settings.displayOrder = order;
+        settings::save(m_settings);
+
+        m_displayNames.clear();
+        for (display::Display* d : displays()) {
+            m_displayNames.push_back(toUtf8(d->name()));
+        }
+        syncUI();
+        updateTooltip();
+    });
+
     // UI slider for one display
     m_ui->setBrightnessCallback([this](int index, int percent) {
         auto list = displays();
@@ -608,10 +651,6 @@ void Application::setupCallbacks() {
             applyHotkeys();
         }
     };
-    hotkeyActions.setStep = [this](int step) {
-        m_settings.stepPercent = std::clamp(step, 1, 25);
-        settings::save(m_settings);
-    };
     m_ui->setHotkeyActions(hotkeyActions);
 }
 
@@ -736,6 +775,13 @@ void Application::showWindow() {
         }
     }
     m_foregroundAtShow = GetForegroundWindow();
+
+    // DWM keeps drawing a flat grey instead of the acrylic backdrop after a hide/show until the window
+    // is resized, so shrink it by a pixel; positionWindow() restores the height on the next frame.
+    RECT rc;
+    GetWindowRect(m_hwnd, &rc);
+    SetWindowPos(m_hwnd, nullptr, 0, 0, rc.right - rc.left, rc.bottom - rc.top - 1,
+                 SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
 void Application::hideWindow() {
